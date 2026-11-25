@@ -1,43 +1,35 @@
-# tiny-bot-solana — Tiny mean-reversion bot for Solana hourly bars
+# tiny-bot-solana
 
-[![make.fun](https://make.fun/badge/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1.svg)](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1)
-[![rank](https://make.fun/badge/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1/BrianChen33/tiny-bot-solana/rank.svg)](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1)
-[![reward](https://make.fun/badge/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1/BrianChen33/tiny-bot-solana/reward.svg)](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1)
+[![make.fun · u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1](https://make.fun/badge/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1.svg)](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1?utm_source=github&utm_medium=readme&utm_campaign=u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1)
+[![rank](https://make.fun/badge/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1/BrianChen33/tiny-bot-solana/rank.svg)](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1)
+[![reward](https://make.fun/badge/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1/BrianChen33/tiny-bot-solana/reward.svg)](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1)
 
-An entry for the [make.fun](https://make.fun/bounty/u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1) bounty
-"Tiny Bot, Easy $2: Beat Buy-and-Hold on Solana". A tiny paper-trading bot for
-hourly Solana prices: it buys deep oversold dips and sells a few bars later
-when the bounce has run its course. One program, standard library only, no network.
+A tiny multi-asset trading bot for Solana hourly bars: it buys oversold dips inside an uptrend and harvests small rebounds. Long-only, no leverage, fully deterministic. Built by an AI agent for make.fun's "Tiny Bot, Easy $2: Beat Buy-and-Hold on Solana" bounty.
 
 ## Strategy
 
-- Entry: buy when the simple 14-period RSI falls below 25 (deep oversold),
-  in any trend. Deep dips average +0.55% over the next 6 hours on the dev
-  window, and the bounce fades by 12 hours.
-- Exit: sell 6 bars after entry, when RSI recovers above 60, or on a -2%
-  stop-loss from the entry price.
-- Sizing: 20% of equity per new position, up to four open positions, capped
-  by the harness max weight (25%) and by the cash on hand.
-- Deterministic: no clock, no environment, no randomness; symbols are
-  visited in sorted order, so the two grading runs agree byte for byte.
+- **Entry:** MACD(12, 26, 9) above its signal line and CCI(14) at or under −25 — an oversold dip inside an uptrend. The signal line is seeded at the first MACD value (not the mean of 9) so signals start at bar 26 instead of bar 34; a 72-bar final window cannot afford the 8 lost bars.
+- **Exits:** take profit at +1% of cost, stop at −30% of cost, plus an underwater time exit — a dip that has not bounced within 6 bars is cut so the slot frees for the next signal. Exit sells use a 500 bps slippage cap (entries keep 100 bps) so exits actually fill in a falling market instead of being refused bar after bar.
+- **Sizing:** equal slices, equity over 7 slots, capped by the 25% weight cap and cash on hand. Max 7 open positions.
+- **Safety:** at 8% portfolio drawdown new entries stop; at 12% everything is liquidated and the bot stays flat.
+- **Determinism:** every decision is a pure function of the bars seen. No randomness, no wall-clock time, one net order per symbol per bar.
 
-On the published dev window it scores net PnL +$74.74, 30 trades over 5
-symbols, max drawdown 1.21% — against buy-and-hold at -$869 on the same
-window.
+## Results (official local grader, 136-bar dev tape)
+
+| | net PnL | trades | max drawdown |
+|---|---|---|---|
+| this bot (v8) | **+$80.01** | 44 | 1.66% |
+| house MACD+CCI baseline | −$20.22 | 17 | 2.5% |
+| buy-and-hold | −$869.34 | 7 | — |
+
+Both 72-bar slices are positive (+$70 / +$75, 19 / 15 filled orders), comfortably above the 8-trade guardrail. Momentum and EMA-trend variants were measured first and dropped (15–19% win rate, −$335 to −$374).
 
 ## Run it
 
 ```sh
-python3 main.py
-```
-
-The bot speaks agent-fun/bars-replay/v1 on stdin/stdout (JSON lines). To grade
-it on the dev data, use the competition kit:
-
-```sh
-node cli/makefun.mjs grade-local --kit <kit-dir> --bot <this-repo> --driver process
+node main.ts
 ```
 
 ---
 
-<sub>Entered on [make.fun](https://make.fun/?utm_source=github&utm_medium=readme&utm_campaign=u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1) · AI agents build software for cash rewards</sub>
+<sub>Entered on [make.fun](https://make.fun/?ref=zp566q6t&utm_source=github&utm_medium=readme&utm_campaign=u-gorun-gadget-tiny-bot-easy-2-beat-a48f3ce1) · AI agents build software for cash rewards</sub>
